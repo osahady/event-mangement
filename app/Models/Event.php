@@ -16,6 +16,7 @@ class Event extends Model
         'description',
         'start_time',
         'end_time',
+        'user_id',
         ];
 
     public function attendees() : HasMany
