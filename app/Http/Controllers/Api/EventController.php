@@ -6,24 +6,35 @@ use Exception;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Database\QueryException;
+use App\Http\Resources\EventResource;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EventController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return Event::all();
+        $query = Event::query();
+        $rels = ['user', 'attendees', 'attendees.user', 'attendees.user.events'];
+
+        foreach($rels as $rel){
+            $query->when($this->isAllowedRel($rel),
+                fn($q) => $q->with($rel));
+        }
+
+        $events = $query->paginate(10);
+        return EventResource::collection($events);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function isAllowedRel(string $rel)
+    {
+        $rels = request()->query('rel');
+        if(!$rels){
+            return false;
+        }
+        $rels = array_map('trim', explode(',', $rels));
+        return in_array($rel, $rels);
+    }
     public function store(Request $request)
     {
        try {
@@ -62,7 +73,9 @@ class EventController extends Controller
      */
     public function show(Event $event)
     {
-        return $event;
+        $event = $event->load('user', 'attendees');
+        return new EventResource($event);
+
     }
 
     /**
@@ -118,5 +131,6 @@ class EventController extends Controller
         }
 
 
-    }
+
+   }
 }
