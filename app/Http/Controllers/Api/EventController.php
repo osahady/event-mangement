@@ -7,34 +7,23 @@ use App\Models\Event;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EventResource;
+use App\Http\Traits\CanLoadRelations;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class EventController extends Controller
 {
+    use CanLoadRelations;
+
+    private array $allowedRelations = ['user', 'attendees', 'attendees.user', 'attendees.user.events'];
     public function index()
     {
-        $query = Event::query();
-        $rels = ['user', 'attendees', 'attendees.user', 'attendees.user.events'];
-
-        foreach($rels as $rel){
-            $query->when($this->isAllowedRel($rel),
-                fn($q) => $q->with($rel));
-        }
+        $query = $this->loadRelations(Event::query());
 
         $events = $query->paginate(10);
         return EventResource::collection($events);
     }
 
-    public function isAllowedRel(string $rel)
-    {
-        $rels = request()->query('rel');
-        if(!$rels){
-            return false;
-        }
-        $rels = array_map('trim', explode(',', $rels));
-        return in_array($rel, $rels);
-    }
     public function store(Request $request)
     {
        try {
@@ -50,7 +39,7 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event created successfully',
-            'event' => $event,
+            'event' => new EventResource($this->loadRelations($event)),
         ], 201);
        }catch (ValidationException $e){
               return response()->json([
@@ -73,8 +62,7 @@ class EventController extends Controller
      */
     public function show(Event $event)
     {
-        $event = $event->load('user', 'attendees');
-        return new EventResource($event);
+        return new EventResource($this->loadRelations($event));
 
     }
 
@@ -92,7 +80,7 @@ class EventController extends Controller
         ]));
         return response()->json([
             'message' => 'Event updated successfully',
-            'event' => $event,
+            'event' => new EventResource($this->loadRelations($event)),
 
         ], 200);
         } catch (ValidationException $ve) {
