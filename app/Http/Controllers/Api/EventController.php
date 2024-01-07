@@ -15,6 +15,11 @@ class EventController extends Controller
 {
     use CanLoadRelations;
 
+    public function __construct()
+    {
+        $this->middleware('auth:sanctum')->except(['index', 'show']);
+    }
+
     private array $allowedRelations = ['user', 'attendees', 'attendees.user', 'attendees.user.events'];
     public function index()
     {
@@ -28,7 +33,7 @@ class EventController extends Controller
     {
        try {
          $event = Event::create([
-            'user_id' => 1,
+            'user_id' => $request->user()->id,
             ...$request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -71,7 +76,13 @@ class EventController extends Controller
      */
     public function update(Request $request, Event $event)
     {
+
         try {
+            if($event->user_id !== $request->user()->id){
+                return response()->json([
+                    'message' => 'You are not authorized to update this event',
+                ], 403);
+            }
             $event->update($request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -103,12 +114,19 @@ class EventController extends Controller
     public function destroy(int $id)
     {
         try{
+
             $event = Event::findOrFail($id);
         }catch (ModelNotFoundException $e){
             return response()->json([
                 'message' => 'Exception Handling: Event not found',
             ], 404);
         }
+
+        if($event->user_id !== request()->user()->id){
+                return response()->json([
+                    'message' => 'You are not authorized to delete this event',
+                ], 403);
+            }
 
         if($event->delete()){
             return response()->json(status: 204);

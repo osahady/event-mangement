@@ -17,6 +17,7 @@ class UserResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'email'=> $this->email,
             'events' => EventResource::collection($this->whenLoaded('events')),
             'attendees' => AttendeeResource::collection($this->whenLoaded('attendees')),
 
