@@ -18,6 +18,7 @@ class EventController extends Controller
     public function __construct()
     {
         $this->middleware('auth:sanctum')->except(['index', 'show']);
+        $this->authorizeResource(Event::class, 'event');
     }
 
     private array $allowedRelations = ['user', 'attendees', 'attendees.user', 'attendees.user.events'];
@@ -78,11 +79,7 @@ class EventController extends Controller
     {
 
         try {
-            if($event->user_id !== $request->user()->id){
-                return response()->json([
-                    'message' => 'You are not authorized to update this event',
-                ], 403);
-            }
+
             $event->update($request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -116,17 +113,12 @@ class EventController extends Controller
         try{
 
             $event = Event::findOrFail($id);
-        }catch (ModelNotFoundException $e){
+        }
+        catch (ModelNotFoundException $e){
             return response()->json([
                 'message' => 'Exception Handling: Event not found',
             ], 404);
         }
-
-        if($event->user_id !== request()->user()->id){
-                return response()->json([
-                    'message' => 'You are not authorized to delete this event',
-                ], 403);
-            }
 
         if($event->delete()){
             return response()->json(status: 204);
