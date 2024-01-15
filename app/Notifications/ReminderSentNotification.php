@@ -36,6 +36,8 @@ class ReminderSentNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
+                    ->subject('Event Reminder')
+                    ->greeting("Hello {$notifiable->name}")
                     ->line("Quick reminder: you have an event coming up {$this->event->name}")
                     ->action('View Event', route('events.show', $this->event))
                     ->line("Be on time! at {$this->event->start_time}");
